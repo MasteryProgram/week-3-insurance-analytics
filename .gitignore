@@ -1,0 +1,20 @@
+# Data
+data/*.csv
+*.csv
+
+# Environment
+__pycache__/
+*.pyc
+.venv/
+env/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# DVC
+.dvc/cache
+.dvc/tmp
+
+# OS
+.DS_Store
