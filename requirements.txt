@@ -4,6 +4,9 @@ matplotlib
 seaborn
 scipy
 scikit-learn
+xgboost
+shap
 dvc
+dvc[all]
 jupyter
 openpyxl

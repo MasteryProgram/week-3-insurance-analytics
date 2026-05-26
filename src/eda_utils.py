@@ -1,104 +1,169 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def load_and_prepare_data(path='../data/insurance_data.csv'):
-    """Load and do initial cleaning"""
+def load_clean_data(path="../data/cleaned_insurance_data.csv"):
+    """Load the cleaned dataset"""
     df = pd.read_csv(path, low_memory=False)
-    df['LossRatio'] = df['TotalClaims'] / df['TotalPremium'].replace(0, pd.NA)
-    df['Margin'] = df['TotalPremium'] - df['TotalClaims']
-    print(f"✅ Data Loaded: {df.shape[0]:,} rows, {df.shape[1]} columns")
+    print(f"✅ Cleaned data loaded. Shape: {df.shape}")
     return df
 
+def data_summary(df):
+    """Data summarization and dtypes check"""
+    print("=== Data Summary ===")
+    print(f"Shape: {df.shape}")
+    print("\nData Types Count:")
+    print(df.dtypes.value_counts())
+    print("\nNumerical Features Summary:")
+    print(df.describe().round(2))
+    return df.describe()
 
-def portfolio_summary(df):
-    """Overall portfolio metrics"""
-    total_premium = df['TotalPremium'].sum()
-    total_claims = df['TotalClaims'].sum()
-    overall_loss_ratio = (total_claims / total_premium * 100).round(2) if total_premium > 0 else 0
+def check_missing_values(df):
+    """Data Quality Assessment"""
+    missing = df.isnull().sum()
+    missing = missing[missing > 0].sort_values(ascending=False)
+    print(f"\nMissing Values:\n{missing}")
+    return missing
+
+def univariate_analysis(df):
+    """Univariate Analysis - Histograms and Bar Charts"""
+    print("\n=== Univariate Analysis ===")
     
-    print("=== PORTFOLIO SUMMARY ===")
-    print(f"Total Premium      : {total_premium:,.2f} ZAR")
-    print(f"Total Claims       : {total_claims:,.2f} ZAR")
-    print(f"Overall Loss Ratio : {overall_loss_ratio}%")
-    print(f"Total Margin       : {(total_premium - total_claims):,.2f} ZAR")
-    return overall_loss_ratio
-
-
-def analyze_by_group(df, group_col, top_n=10):
-    """General function for group analysis"""
-    result = df.groupby(group_col).agg(
-        TotalPremium=('TotalPremium', 'sum'),
-        TotalClaims=('TotalClaims', 'sum'),
-        AvgLossRatio=('LossRatio', 'mean'),
-        PolicyCount=('TotalPremium', 'count')
-    ).round(4)
+    # Numerical columns
+    num_cols = ['TotalPremium', 'TotalClaims', 'SumInsured', 'CustomValueEstimate', 'LossRatio']
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    axes = axes.ravel()
     
-    result = result.sort_values('AvgLossRatio', ascending=False)
-    print(f"\n=== Top {top_n} {group_col} by Loss Ratio ===")
-    print(result.head(top_n))
-    return result
-
-
-def plot_loss_ratio_by_group(df, group_col, title=None, figsize=(12, 6)):
-    """Plot loss ratio by any categorical variable"""
-    group_data = df.groupby(group_col)['LossRatio'].mean().sort_values(ascending=False).head(10)
+    for i, col in enumerate(num_cols[:5]):
+        if col in df.columns:
+            sns.histplot(data=df, x=col, bins=50, ax=axes[i])
+            axes[i].set_title(f'Distribution of {col}')
     
-    plt.figure(figsize=figsize)
-    sns.barplot(x=group_data.index, y=group_data.values, palette="viridis")
-    plt.title(title or f'Average Loss Ratio by {group_col}', fontsize=14, fontweight='bold')
-    plt.xlabel(group_col)
-    plt.ylabel('Average Loss Ratio')
-    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+    
+    # Categorical columns
+    cat_cols = ['Province', 'Gender', 'VehicleType', 'make']
+    fig, axes = plt.subplots(2, 2, figsize=(16, 10))
+    axes = axes.ravel()
+    
+    for i, col in enumerate(cat_cols):
+        if col in df.columns:
+            top_categories = df[col].value_counts().head(10)
+            sns.barplot(x=top_categories.values, y=top_categories.index, ax=axes[i])
+            axes[i].set_title(f'Top 10 {col}')
+    
     plt.tight_layout()
     plt.show()
 
-
-def plot_distributions(df):
-    """Plot key distributions"""
+def outlier_detection(df):
+    """Outlier Detection using Box Plots"""
+    print("\n=== Outlier Detection ===")
+    key_cols = ['TotalPremium', 'TotalClaims', 'SumInsured', 'CustomValueEstimate']
+    
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    axes = axes.ravel()
     
-    sns.histplot(df['TotalPremium'], bins=50, kde=True, ax=axes[0,0])
-    axes[0,0].set_title('Distribution of TotalPremium')
-    
-    claims_only = df[df['TotalClaims'] > 0]
-    sns.histplot(claims_only['TotalClaims'], bins=50, kde=True, ax=axes[0,1])
-    axes[0,1].set_title('Distribution of TotalClaims (Claims > 0)')
-    
-    sns.boxplot(x=df['TotalPremium'], ax=axes[1,0])
-    axes[1,0].set_title('Boxplot - TotalPremium')
-    
-    sns.boxplot(x=claims_only['TotalClaims'], ax=axes[1,1])
-    axes[1,1].set_title('Boxplot - TotalClaims')
+    for i, col in enumerate(key_cols):
+        if col in df.columns:
+            sns.boxplot(data=df, y=col, ax=axes[i])
+            axes[i].set_title(f'Box Plot of {col}')
     
     plt.tight_layout()
     plt.show()
 
-
-def correlation_analysis(df):
-    """Correlation heatmap - robust version"""
-    num_cols = ['TotalPremium', 'TotalClaims', 'LossRatio', 'Margin', 
-                'CustomValueEstimate', 'SumInsured', 'CalculatedPremiumPerTerm']
-    print("\n=== updated Correlation Analysis ===")
-    # Filter existing columns
-    num_cols = [col for col in num_cols if col in df.columns]
+def bivariate_analysis(df):
+    """Bivariate & Multivariate Analysis"""
+    print("\n=== Bivariate Analysis ===")
     
-    corr_df = df[num_cols].copy()
-    
-    # Convert to numeric and handle missing values safely
-    for col in corr_df.columns:
-        corr_df[col] = pd.to_numeric(corr_df[col], errors='coerce')
-    
-    # Fill NaNs with 0 for correlation (common in insurance analysis)
-    corr_matrix = corr_df.fillna(0).corr()
-    
-    # Plot
-    plt.figure(figsize=(11, 9))
-    mask = np.triu(np.ones_like(corr_matrix, dtype=bool))  # Optional: hide upper triangle
-    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt='.2f', 
-                linewidths=0.5, mask=mask, vmin=-1, vmax=1)
-    plt.title('Correlation Matrix of Key Variables', fontsize=14, fontweight='bold')
-    plt.tight_layout()
+    # Scatter plot: TotalPremium vs TotalClaims
+    plt.figure(figsize=(12, 8))
+    sns.scatterplot(data=df, x='TotalPremium', y='TotalClaims', alpha=0.5)
+    plt.title('TotalPremium vs TotalClaims')
     plt.show()
     
-    return corr_matrix
+    # Correlation Matrix (numerical features)
+    num_features = ['TotalPremium', 'TotalClaims', 'SumInsured', 'CustomValueEstimate', 
+                   'LossRatio', 'Margin', 'VehicleAge']
+    corr = df[num_features].corr()
+    
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(corr, annot=True, cmap='coolwarm', center=0)
+    plt.title('Correlation Matrix')
+    plt.show()
+
+def geographic_trends(df):
+    """Geographic Trends Analysis"""
+    print("\n=== Geographic Trends ===")
+    
+    # Premium by Province
+    province_premium = df.groupby('Province')['TotalPremium'].mean().sort_values(ascending=False)
+    print("Average Premium by Province:")
+    print(province_premium.head(10))
+    
+    # Loss Ratio by Province
+    province_lr = df.groupby('Province').agg({
+        'TotalPremium': 'sum',
+        'TotalClaims': 'sum'
+    }).assign(LossRatio=lambda x: (x['TotalClaims']/x['TotalPremium']*100).round(2))
+    
+    print("\nLoss Ratio by Province:")
+    print(province_lr[['LossRatio']].sort_values('LossRatio', ascending=False))
+    
+    # Visualizations
+    fig, axes = plt.subplots(1, 2, figsize=(18, 6))
+    
+    sns.barplot(x=province_premium.head(8).index, y=province_premium.head(8).values, ax=axes[0])
+    axes[0].set_title('Average Premium by Province')
+    axes[0].tick_params(axis='x', rotation=45)
+    
+    sns.barplot(x=province_lr['LossRatio'].head(8).index, y=province_lr['LossRatio'].head(8).values, ax=axes[1])
+    axes[1].set_title('Loss Ratio by Province (%)')
+    axes[1].tick_params(axis='x', rotation=45)
+    
+    plt.tight_layout()
+    plt.show()
+
+def calculate_loss_ratio(df):
+    """Overall Loss Ratio and Grouped Analysis"""
+    overall_lr = (df['TotalClaims'].sum() / df['TotalPremium'].sum() * 100).round(2)
+    print(f"\nOverall Portfolio Loss Ratio: {overall_lr}%")
+    
+    return overall_lr
+
+def top_claims_analysis(df):
+    """Enhanced analysis of vehicle makes with clear printed output"""
+    print("\n" + "="*60)
+    print("🚗 VEHICLE MAKES - CLAIMS ANALYSIS")
+    print("="*60)
+    
+    make_claims = df.groupby('make').agg({
+        'TotalClaims': ['count', 'sum', 'mean', 'max']
+    }).round(2)
+    
+    make_claims.columns = ['Policy_Count', 'Total_Claims', 'Avg_Claim', 'Max_Claim']
+    
+    # Top 10 by Total Claims
+    print("\n🔥 TOP 10 VEHICLE MAKES BY TOTAL CLAIMS:")
+    top_total = make_claims.sort_values('Total_Claims', ascending=False).head(10)
+    print(top_total)
+    
+    # Top 10 by Average Claim Amount
+    print("\n💰 TOP 10 VEHICLE MAKES BY AVERAGE CLAIM AMOUNT:")
+    top_avg = make_claims[make_claims['Policy_Count'] >= 100].sort_values('Avg_Claim', ascending=False).head(10)
+    print(top_avg)
+    
+    # Lowest risk makes (by average claim)
+    print("\n✅ LOWEST RISK MAKES (by Average Claim - min 100 policies):")
+    lowest_risk = make_claims[make_claims['Policy_Count'] >= 100].sort_values('Avg_Claim').head(10)
+    print(lowest_risk)
+    
+    # Summary insight
+    print("\n" + "-"*50)
+    print("📊 SUMMARY:")
+    print(f"• Total unique vehicle makes: {len(make_claims)}")
+    print(f"• Highest average claim: {make_claims['Avg_Claim'].max():,.2f} Rand")
+    print(f"• Lowest average claim: {make_claims['Avg_Claim'].min():,.2f} Rand")
+    
+    return make_claims

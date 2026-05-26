@@ -6,8 +6,14 @@ data/*.csv
 __pycache__/
 *.pyc
 .venv/
-env/
-venv/
+
+data/*.txt
+data/*.csv
+!data/*.dvc
+
+# DVC cache - NEVER push this
+.dvc/cache
+dvc-storage/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -18,3 +24,18 @@ venv/
 
 # OS
 .DS_Store
+Thumbs.db
+
+# Large data files
+data/*.txt
+data/*.csv
+!data/*.dvc
+
+# DVC cache - NEVER push this
+.dvc/cache
+dvc-storage/
+!data/insurance_data.csv.dvc
+
+# DVC cache
+.dvc/cache
+
