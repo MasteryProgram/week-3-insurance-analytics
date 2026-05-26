@@ -1,4 +1,6 @@
 [core]
-    remote = localstorage
+    remote = myremote
 ['remote "localstorage"']
-    url = ~/dvc_storage/insurance
+    url = ~\dvc_storage\insurance
+['remote "myremote"']
+    url = ../dvc-storage
