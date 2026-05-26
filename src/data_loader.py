@@ -1,7 +1,7 @@
 
 import pandas as pd
 
-def load_data(path='data/insurance_data.csv'):
+def load_data(path='../data/insurance_data.csv'):
     """Load the insurance dataset"""
     df = pd.read_csv(path, low_memory=False)
     print(f"✅ Data Loaded: {df.shape[0]:,} rows and {df.shape[1]} columns")

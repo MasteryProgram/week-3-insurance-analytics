@@ -6,8 +6,7 @@ data/*.csv
 __pycache__/
 *.pyc
 .venv/
-env/
-venv/
+
 
 # Jupyter
 .ipynb_checkpoints/
@@ -17,6 +16,8 @@ venv/
 .dvc/tmp
 
 # OS
+.DS_Store
+Thumbs.db
 
 # Large data files
 data/*.txt
@@ -27,7 +28,3 @@ data/*.zip
 # DVC cache
 .dvc/cache
 
-# Python
-__pycache__/
-*.pyc
-.venv/
